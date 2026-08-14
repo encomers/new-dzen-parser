@@ -1,5 +1,5 @@
 # ---- Этап сборки зависимостей ----
-FROM python:3.14-slim AS builder
+FROM python:3.14 AS builder
 
 # Устанавливаем uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -18,7 +18,7 @@ RUN uv venv /opt/venv && \
     (echo "❌ openai installation failed" && exit 1)
 
 # ---- Финальный образ ----
-FROM python:3.14-slim
+FROM python:3.14
 
 # Установка временной зоны
 ENV TZ=Europe/Moscow
