@@ -10,7 +10,7 @@ from datetime import time as dt_time
 import openai
 import requests
 import schedule
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -56,8 +56,7 @@ class AdditionalSizes(BaseModel):
     square_big: AdditionalSizesSquare = Field(alias="square-big")
     square_small: AdditionalSizesSquare = Field(alias="square-small")
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class MediaContent(BaseModel):
@@ -315,6 +314,7 @@ class DzenScraper:
     @staticmethod
     def create_driver() -> webdriver.Chrome:
         options = Options()
+
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -323,6 +323,8 @@ class DzenScraper:
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option("useAutomationExtension", False)
+        # Явно указываем путь к бинарнику Chrome
+        options.binary_location = "/usr/bin/chromium"
         return webdriver.Chrome(options=options)
 
     def fetch_article_content_selenium(
