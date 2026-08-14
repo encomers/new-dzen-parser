@@ -1,7 +1,7 @@
 # ---- Этап сборки зависимостей ----
 FROM python:3.14-slim AS builder
 
-# Устанавливаем uv (последняя версия)
+# Устанавливаем uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
@@ -9,12 +9,10 @@ WORKDIR /app
 # Копируем только файлы с зависимостями
 COPY pyproject.toml uv.lock ./
 
-# Создаём venv в /opt/venv и устанавливаем пакеты через uv sync
-# Указываем venv через переменную VIRTUAL_ENV
-RUN uv venv /opt/venv && \
-    VIRTUAL_ENV=/opt/venv uv sync --no-dev --frozen && \
-    # Проверяем, что openai действительно установлен
-    /opt/venv/bin/python -c "import openai; print('✅ openai installed')" || \
+# uv sync сам создаст .venv в /app и установит все пакеты
+RUN uv sync --no-dev --frozen && \
+    # Проверяем, что openai установлен именно в .venv
+    .venv/bin/python -c "import openai; print('✅ openai installed')" || \
     (echo "❌ openai not found" && exit 1)
 
 # ---- Финальный образ ----
@@ -37,13 +35,13 @@ RUN addgroup --system --gid 1001 appuser && \
 
 WORKDIR /app
 
-# Копируем виртуальное окружение из builder
-COPY --from=builder /opt/venv /opt/venv
+# Копируем виртуальное окружение из builder (оно находится в /app/.venv)
+COPY --from=builder /app/.venv /app/.venv
 
-# Добавляем venv в PATH (чтобы python и pip были из него)
-ENV PATH="/opt/venv/bin:$PATH"
+# Добавляем .venv/bin в PATH, чтобы python и все скрипты были из venv
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Копируем исходный код
+# Копируем исходный код проекта
 COPY . .
 
 # Назначаем владельца и переключаемся на непривилегированного пользователя
@@ -53,5 +51,5 @@ USER appuser
 # Отключаем буферизацию вывода Python
 ENV PYTHONUNBUFFERED=1
 
-# Точка входа
+# Точка входа – запуск парсера
 ENTRYPOINT ["python", "dzen.py"]
